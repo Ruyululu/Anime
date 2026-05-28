@@ -19,7 +19,7 @@ object GirigiriSource : AnimeSource {
 
     private const val LOG_TAG = "GirigiriSource"
 
-    override val DEFAULT_DOMAIN: String = "https://anime.girigirilove.com"
+    override val DEFAULT_DOMAIN: String = "https://ani.girigirilove.com"
     override var baseUrl: String = getDefaultDomain()
     private val webViewUtil: WebViewUtil by lazy { WebViewUtil() }
 
@@ -58,7 +58,7 @@ object GirigiriSource : AnimeSource {
         val elements = document.select("div.wow").apply { removeAt(0) }
         val homeBeanList = mutableListOf<HomeBean>()
         for ((i, el) in elements.withIndex()) {
-            if (i == 1) continue
+            if (i == 1 || i == elements.lastIndex) continue
             val title = el.select("div.title-left > h4").text()
             val moreUrl = el.select("div.title-right > a").attr("href")
             val homeItemBeanList = getAnimeList(el.select("div.public-list-box"))
@@ -80,7 +80,7 @@ object GirigiriSource : AnimeSource {
                 ?.also { it.removeAt(it.lastIndex) } ?: emptyList()
         val channels = getAnimeEpisodes(document.select("div.anthology-list").select("ul"))
         val relatedAnimes =
-            getAnimeList(document.select("div.box-width.wow").select("div.public-list-box"))
+            getAnimeList(document.select("div.public-pic-b"))
         return AnimeDetailBean(title, imgUrl, desc, tags, relatedAnimes, channels = channels)
     }
 
