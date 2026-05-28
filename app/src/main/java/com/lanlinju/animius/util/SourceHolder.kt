@@ -2,7 +2,6 @@ package com.lanlinju.animius.util
 
 import com.lanlinju.animius.application.AnimeApplication
 import com.lanlinju.animius.data.remote.parse.AgedmSource
-import com.lanlinju.animius.data.remote.parse.AnfunsSource
 import com.lanlinju.animius.data.remote.parse.AnimeSource
 import com.lanlinju.animius.data.remote.parse.CycanimeSource
 import com.lanlinju.animius.data.remote.parse.GirigiriSource
@@ -67,7 +66,7 @@ object SourceHolder {
             SourceMode.Silisili -> SilisiliSource
             SourceMode.Mxdm -> MxdmSource
             SourceMode.Agedm -> AgedmSource
-            SourceMode.Anfuns -> AnfunsSource
+//            SourceMode.Anfuns -> AnfunsSource
             SourceMode.Girigiri -> GirigiriSource
             SourceMode.Nyafun -> NyafunSource
             SourceMode.Cycanime -> CycanimeSource
@@ -81,15 +80,16 @@ object SourceHolder {
 
 enum class SourceMode {
     Silisili,
-    Mxdm,
-    Girigiri,
     Agedm,
-    Xifan,
-    Nyafun,
-    Gugufan,
-    Ntdm,
+    Girigiri,
     Cycanime,
-    Anfuns,
+    Gugufan,
+    Mxdm,
+    Xifan,
+    Ntdm,
+    Nyafun,
+
+    //    Anfuns,
     Gogoanime,
     Yhdm
 }
