@@ -16,7 +16,7 @@ object AgedmSource : AnimeSource {
 
     private const val LOG_TAG = "AgedmSource"
 
-    override val DEFAULT_DOMAIN: String = "https://www.agedm.org"
+    override val DEFAULT_DOMAIN: String = "https://www.agedm.io/"
 
     override var baseUrl: String = getDefaultDomain()
 
@@ -94,7 +94,7 @@ object AgedmSource : AnimeSource {
     }
 
     override suspend fun getVideoData(episodeUrl: String): VideoBean {
-        val source = DownloadManager.getHtml(episodeUrl.toHttps())
+        val source = DownloadManager.getHtml("${baseUrl}/$episodeUrl")
         val document = Jsoup.parse(source)
         /*val elements = document.select("div.cata_video_item")
         val title = elements.select("h5").text()
