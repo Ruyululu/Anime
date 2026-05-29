@@ -6,6 +6,7 @@ import com.lanlinju.animius.data.remote.dto.AnimeDetailBean
 import com.lanlinju.animius.data.remote.dto.EpisodeBean
 import com.lanlinju.animius.data.remote.dto.HomeBean
 import com.lanlinju.animius.data.remote.dto.VideoBean
+import com.lanlinju.animius.data.remote.parse.util.CaptchaCookieManager
 import com.lanlinju.animius.data.remote.parse.util.WebViewUtil
 import com.lanlinju.animius.util.DownloadManager
 import com.lanlinju.animius.util.getDefaultDomain
@@ -28,12 +29,34 @@ object GirigiriSource : AnimeSource {
     }
 
     override suspend fun getSearchData(query: String, page: Int): List<AnimeBean> {
-        val source = DownloadManager.getHtml("${baseUrl}/search/${query}----------${page}---/")
+        val searchUrl = "${baseUrl}/search/${query}----------${page}---/"
+
+        // 获取保存的 Cookie
+        val cookies = CaptchaCookieManager.getCookies(CaptchaCookieManager.CUR_KEY_COOKIE)
+        val headers = if (cookies.isNotEmpty()) {
+            mapOf("Cookie" to cookies)
+        } else {
+            emptyMap()
+        }
+
+        val source = DownloadManager.getHtml(searchUrl, headers)
         val document = Jsoup.parse(source)
+
+        // 检测验证码对话框: button.verify-submit + input[name=verify]
+        val hasCaptcha = document.select("button.verify-submit").isNotEmpty() &&
+                document.select("input[name=verify]").isNotEmpty()
+        if (hasCaptcha) {
+            // Cookie 已失效，清除对应 URL 的 Cookie
+            CaptchaCookieManager.clearCookies(CaptchaCookieManager.CUR_KEY_COOKIE)
+            // 记录需要验证码的 URL
+            CaptchaCookieManager.captchaUrl = searchUrl
+            return emptyList()
+        }
+
         val animeList = mutableListOf<AnimeBean>()
-        document.select("div.public-list-box").forEach { el ->
-            val title = el.select("div.thumb-txt").text()
-            val url = el.select("a").attr("href")
+        document.select("div.search-list").forEach { el ->
+            val title = el.select("h3").text()
+            val url = el.select("a").first()?.attr("href") ?: ""
             val imgUrl = el.select("img").attr("data-src").padDomain()
             animeList.add(AnimeBean(title = title, img = imgUrl, url = url))
         }
@@ -109,15 +132,6 @@ object GirigiriSource : AnimeSource {
         val url = "${baseUrl}/$episodeUrl"
         val source = DownloadManager.getHtml(url)
         val document = Jsoup.parse(source)
-        /*var elements = document.select("div.player-right")
-        if (elements.isEmpty()) {
-            elements = document.select("div.player-info")
-        }
-        val title = elements.select("h2").text()
-        var episodeName = ""
-        val episodes = getAnimeEpisodes(
-            elements.select("div.anthology-list-box").select("ul"),
-            action = { episodeName = it })*/
         val videoUrl = getVideoUrl(document)
         return VideoBean(videoUrl)
     }
@@ -136,7 +150,7 @@ object GirigiriSource : AnimeSource {
     private fun getAnimeEpisodes(elements: Elements): Map<Int, List<EpisodeBean>> {
         val channels = mutableMapOf<Int, List<EpisodeBean>>()
         elements.forEachIndexed { i, e ->
-            val dramaElements = e.select("li").select("a")//剧集列表
+            val dramaElements = e.select("li").select("a")
             val episodes = mutableListOf<EpisodeBean>()
             dramaElements.forEach { el ->
                 val name = el.text()

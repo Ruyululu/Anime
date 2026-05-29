@@ -1,6 +1,9 @@
 package com.lanlinju.animius.presentation.screen.search
 
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +57,7 @@ import com.lanlinju.animius.R
 import com.lanlinju.animius.presentation.component.MediaSmall
 import com.lanlinju.animius.presentation.component.PaginationStateHandler
 import com.lanlinju.animius.presentation.component.WarningMessage
+import com.lanlinju.animius.presentation.screen.captcha.CaptchaWebViewActivity
 import com.lanlinju.animius.util.SourceMode
 import com.lanlinju.animius.util.isAndroidTV
 import com.lanlinju.animius.util.isWideScreen
@@ -66,10 +72,50 @@ fun SearchScreen(
     val viewModel = hiltViewModel<SearchViewModel>()
     val animesState = viewModel.animesState.collectAsLazyPagingItems()
     val searchQuery by viewModel.query.collectAsState()
+    val needCaptchaUrl by viewModel.needCaptchaUrl.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var searchBarExpanded by rememberSaveable { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val captchaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // 验证码验证完成，重新搜索
+            viewModel.clearNeedCaptcha()
+            viewModel.getSearchData(searchQuery, viewModel.currentSourceMode)
+        }
+    }
+
+    // 显示验证码提示对话框
+    needCaptchaUrl?.let { url ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearNeedCaptcha() },
+            title = { Text("需要验证码验证") },
+            text = { Text("搜索时遇到验证码，请完成验证后重试") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearNeedCaptcha()
+                        captchaLauncher.launch(
+                            CaptchaWebViewActivity.createIntent(context, url)
+                        )
+                    }
+                ) {
+                    Text("去验证")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.clearNeedCaptcha() }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     Box(Modifier.fillMaxSize()) {
         SearchBar(
